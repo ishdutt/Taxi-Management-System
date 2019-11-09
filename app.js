@@ -152,7 +152,7 @@ app.post("/taxi/edit/:id",(req,res)=>{
 
 //List all the drivers
 app.get("/driver",(req,res)=>{
-    connection.query(`select * from driver;`,(err,result)=>{
+    connection.query(`select driver.id,driver.name,driver.age,driver.experiance,driver.rating,driver.address ,taxi.model as model from taxi join driver where driver.taxiid=taxi.id;`,(err,result)=>{
         if(err){console.log(err.message);}
         else
         {
@@ -167,35 +167,83 @@ app.get("/driver/new",(req,res)=>{
     res.render("./driver/newDriver.ejs");
 });
 
+//ADDING NESTED QUERY IN POST ROUTE
+// app.post("/driver",(req,res)=>{
+//     let name=req.body.name;
+//     let age=req.body.age;
+//     let experiance= req.body.experiance;
+//     let rating=req.body.rating;
+//     let address=req.body.address;
+//     let taxiid=req.body.taxiid;
+
+//     let params=[name,age,experiance,rating,address,taxiid];
+//     //adding data
+//     let createdriver=`insert into driver(name,age,experiance,rating,address,taxiid) values (?,?,?,?,?,?);`
+
+//     connection.query(createdriver,params,(err,result,fields)=>{
+//         if(err)
+//             console.log(err.message+"ye model bananne wla hai");
+//         else
+//         {
+//             console.log(result);
+//             console.log("Ye new driver post karne wala route hai");
+//         }
+            
+//         // connection.end();
+//     });
+//        res.redirect("/driver");
+//     //connection.end();
+// });
+
 app.post("/driver",(req,res)=>{
     let name=req.body.name;
     let age=req.body.age;
     let experiance= req.body.experiance;
     let rating=req.body.rating;
     let address=req.body.address;
-    let taxiid=req.body.taxiid;
-
-    let params=[name,age,experiance,rating,address,taxiid];
+    let taxiname=req.body.taxiid;
+    var taxiid;
+    var params;
     //adding data
     let createdriver=`insert into driver(name,age,experiance,rating,address,taxiid) values (?,?,?,?,?,?);`
 
-    connection.query(createdriver,params,(err,result,fields)=>{
+    //Fetch Data from taxi Table
+    //let fetchDriver=`select id from taxi where model = ?;`;
+    connection.query(`select id from taxi where model = ?;`,taxiname,(err,result)=>{
         if(err)
-            console.log(err.message+"ye model bananne wla hai");
+            console.log(err.message);
         else
         {
-            console.log(result);
-            console.log("Ye new driver post karne wala route hai");
+            setValue(result);
+            //console.log(taxiid);
         }
-            
-        // connection.end();
-    });
+    })
+    //assigning value to varible and calling the function to add the paramss
+    function setValue(value) {
+        params= [name,age,experiance,rating,address,value[0].id];
+        console.log(params);
+        connection.query(createdriver,params,(err,result,fields)=>{
+            if(err)
+                console.log(err.message+"ye model bananne wla hai");
+            else
+            {
+                console.log(result);
+                console.log("Ye new driver post karne wala route hai");
+            }
+                
+            // connection.end();
+        });
+    }
+    
+
+    console.log(params);
+
        res.redirect("/driver");
     //connection.end();
 });
 
 app.get("/driver/:id/edit",(req,res)=>{
-    connection.query(`select * from driver where id=?;`,req.params.id,(err,result)=>{
+    connection.query(`select driver.id,driver.name,driver.age,driver.experiance,driver.rating,driver.address ,taxi.model as model from taxi join driver where taxi.id=driver.taxiid and driver.id=?;`,req.params.id,(err,result)=>{
         if(err){console.log(err.message);}
         else
         {
@@ -205,29 +253,62 @@ app.get("/driver/:id/edit",(req,res)=>{
     });
 });
 
+//Updating the Driver
 app.post("/driver/edit/:id",(req,res)=>{
     let name=req.body.name;
     let age=req.body.age;
     let experiance= req.body.experiance;
     let rating=req.body.rating;
     let address=req.body.address;
-    let taxiid=req.body.taxiid;
+    let taxiname=req.body.taxiid;
+    var taxiid;
+    var params;
 
-    let params=[name,age,experiance,rating,address,taxiid,req.params.id];
+
+    // let params=[name,age,experiance,rating,address,taxiid,req.params.id];
     //adding data
     let createdriver=`update driver set name=?,age=?,experiance=?,rating=?,address=?,taxiid=? where id=?;`
 
-    connection.query(createdriver,params,(err,result,fields)=>{
+    //Fetching the id of taxi from Taxi Name
+    connection.query(`select id from taxi where model = ?;`,taxiname,(err,result)=>{
         if(err)
-            console.log(err.message+"ye model bananne wla hai");
+            console.log(err.message);
         else
         {
-            console.log(result);
-            res.redirect("/driver");
+            setValue(result);
+            //console.log(taxiid);
         }
+    })
+
+    function setValue(value) {
+        params= [name,age,experiance,rating,address,value[0].id,req.params.id];
+        console.log(params);
+        connection.query(createdriver,params,(err,result,fields)=>{
+            if(err)
+                console.log(err.message+"ye model bananne wla hai");
+            else
+            {
+                console.log(result);
+                console.log("Ye new driver post karne wala route hai");
+                res.redirect("/driver");
+            }
+                
+            // connection.end();
+        });
+    }
+
+
+    // connection.query(createdriver,params,(err,result,fields)=>{
+    //     if(err)
+    //         console.log(err.message+"ye model bananne wla hai");
+    //     else
+    //     {
+    //         console.log(result);
+    //         res.redirect("/driver");
+    //     }
             
-        // connection.end();
-    });
+    //     // connection.end();
+    // });
        
 })
 
@@ -403,7 +484,7 @@ app.post("/ride",(req,res)=>{
 
 //List all the drivers
 app.get("/ride",(req,res)=>{
-    connection.query(`select * from ride;`,(err,result)=>{
+    connection.query(`select ride.estimateCost,ride.startingPoint,ride.endPoint,driver.name as dname,user.name from ride join driver join user where driver.id=ride.driverId and ride.custormerId=user.id;`,(err,result)=>{
         if(err){console.log(err.message);}
         else
         {
